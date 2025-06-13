@@ -24,6 +24,7 @@ import {
   LogOut,
 } from "lucide-react";
 import type { Variants } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const router = useRouter();
   const [activeItem, setActiveItem] = React.useState("dashboard");
   const [expandedMenus, setExpandedMenus] = React.useState<
     Record<string, boolean>
@@ -177,7 +179,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           }`}
           onClick={() => {
             onClick(item.id);
-            if (hasSubmenu) toggleMenu(item.id);
+            if (hasSubmenu) {
+              toggleMenu(item.id);
+            } else if (item.href) {
+              router.push(item.href);
+            }
           }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -222,7 +228,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 <motion.div
                   key={subItem.id}
                   className="p-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors"
-                  onClick={() => setActiveItem(subItem.id)}
+                  onClick={() => {
+                    setActiveItem(subItem.id);
+                    if (subItem.href) router.push(subItem.href);
+                  }}
                   whileHover={{ x: 4 }}
                 >
                   {subItem.label}
@@ -275,7 +284,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">IP</span>
               </div>
-              <span className="font-semibold text-gray-800">
+              <span
+                className="font-semibold text-gray-800 cursor-pointer"
+                onClick={() => router.push("/")}
+              >
                 Interview Prep
               </span>
             </div>
