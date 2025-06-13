@@ -61,8 +61,7 @@ export default function InterviewPage() {
       return;
     }
 
-    const SpeechRecognition =
-      (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
 
     recognition.continuous = true;
@@ -91,61 +90,150 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left Column - AI Agent */}
-        <div className="space-y-6">
-          <div className="bg-gray-200 w-full aspect-video rounded-lg flex items-center justify-center">
-            <span className="text-gray-600">AI Interviewer</span>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Interview Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Technical Interview Session
+            </h1>
+            <span className="text-sm font-medium text-gray-500">
+              Question {currentQuestionIndex + 1} of {mockQuestions.length}
+            </span>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Current Question:</h2>
-            <p>{mockQuestions[currentQuestionIndex]}</p>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{
+                width: `${
+                  ((currentQuestionIndex + 1) / mockQuestions.length) * 100
+                }%`,
+              }}
+            />
           </div>
         </div>
 
-        {/* Right Column - User */}
-        <div className="space-y-6">
-          {error ? (
-            <div className="bg-red-100 text-red-700 p-4 rounded-lg">{error}</div>
-          ) : (
-            <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full aspect-video rounded-lg bg-black"
-              />
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() =>
-                    interviewState === "idle" && setInterviewState("asking")
-                  }
-                  disabled={interviewState !== "idle"}
-                >
-                  Start Interview
-                </button>
-                <button
-                  onClick={startListening}
-                  disabled={
-                    interviewState !== "listening" || currentQuestionIndex >= mockQuestions.length
-                  }
-                >
-                  Start Recording
-                </button>
-                {interviewState === "listening" && (
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                )}
-              </div>
-              {transcript && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">Your Answer:</h3>
-                  <p>{transcript}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - AI Agent */}
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-blue-500 to-purple-600 w-full aspect-video rounded-2xl shadow-lg flex items-center justify-center">
+              <div className="text-center">
+                <span className="text-white text-xl font-medium">
+                  AI Interviewer
+                </span>
+                <div className="mt-2">
+                  {interviewState === "asking" && (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div
+                        className="w-2 h-2 bg-white rounded-full animate-bounce"
+                        style={{ animationDelay: "0s" }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-white rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-white rounded-full animate-bounce"
+                        style={{ animationDelay: "0.4s" }}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Current Question:
+              </h2>
+              <p className="text-lg text-gray-700 leading-relaxed">
+                {mockQuestions[currentQuestionIndex]}
+              </p>
+            </div>
+          </div>
+
+          {/* Right Column - User */}
+          <div className="space-y-6">
+            {error ? (
+              <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+                <div className="flex items-center">
+                  <svg
+                    className="h-6 w-6 text-red-500 mr-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <p className="text-red-700">{error}</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full aspect-video rounded-2xl bg-black shadow-lg"
+                  />
+                  {interviewState === "listening" && (
+                    <div className="absolute top-4 right-4 flex items-center space-x-2 bg-black bg-opacity-50 rounded-full px-4 py-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-white text-sm font-medium">
+                        Recording
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() =>
+                      interviewState === "idle" && setInterviewState("asking")
+                    }
+                    disabled={interviewState !== "idle"}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                      interviewState === "idle"
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    Start Interview
+                  </button>
+                  <button
+                    onClick={startListening}
+                    disabled={
+                      interviewState !== "listening" ||
+                      currentQuestionIndex >= mockQuestions.length
+                    }
+                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                      interviewState === "listening"
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    Start Recording
+                  </button>
+                </div>
+                {transcript && (
+                  <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Your Answer:
+                    </h3>
+                    <p className="text-gray-700 leading-relaxed">
+                      {transcript}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
