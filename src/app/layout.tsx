@@ -32,7 +32,6 @@ export default function RootLayout({
       <body className="min-h-screen w-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 overflow-x-hidden">
         {/* Sidebar */}
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
         {/* Hamburger for mobile */}
         <button
           className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
@@ -51,14 +50,12 @@ export default function RootLayout({
               d="M4 6h16M4 12h16M4 18h16"
             />
           </svg>
-        </button>
-
+        </button>{" "}
         {/* Main content */}
-        <main className="w-full">
-          {children}
+        <div className="flex flex-col min-h-screen">
+          <main className="w-full flex-grow">{children}</main>
           <Footer />
-        </main>
-
+        </div>
         <Script id="intersection-observer">
           {`document.addEventListener('DOMContentLoaded', function() {
             const observerOptions = {
