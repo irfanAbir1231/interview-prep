@@ -5,6 +5,8 @@ import { Footer } from "../components/layout/Footer";
 import "./globals.css";
 import Script from "next/script";
 import { useState } from "react";
+import AvatarDropdown from "../components/layout/AvatarDropdown";
+import NotificationBell from "../components/layout/NotificationBell";
 
 // Sidebar is now the main navigation. Navbar removed.
 
@@ -50,7 +52,12 @@ export default function RootLayout({
               d="M4 6h16M4 12h16M4 18h16"
             />
           </svg>
-        </button>{" "}
+        </button>
+        {/* Notification and Avatar at top right */}
+        <div className="fixed top-6 right-20 z-50 flex items-center space-x-6">
+          <NotificationBell />
+          <AvatarDropdown />
+        </div>
         {/* Main content */}
         <div className="flex flex-col min-h-screen">
           <main className="w-full flex-grow">{children}</main>

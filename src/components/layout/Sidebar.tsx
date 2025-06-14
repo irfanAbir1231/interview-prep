@@ -117,7 +117,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Trophy,
       color: "text-yellow-500",
     },
-    { id: "goals", label: "Goals", icon: Target, color: "text-blue-500" },
+    {
+      id: "goals",
+      label: "Goals",
+      icon: Target,
+      href: "/goals",
+      color: "text-blue-500",
+    },
     {
       id: "schedule",
       label: "Schedule",
@@ -179,10 +185,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           }`}
           onClick={() => {
             onClick(item.id);
+
+            if (item.href && !hasSubmenu) {
+              router.push(item.href);
+              return;
+            }
+
             if (hasSubmenu) {
               toggleMenu(item.id);
-            } else if (item.href) {
-              router.push(item.href);
             }
           }}
           whileHover={{ scale: 1.02 }}
@@ -320,6 +330,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   className="flex flex-col items-center p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    if (action.id === "feedback")
+                      router.push("/feedback/all-feedbacks");
+                    if (action.id === "goals") router.push("/goals");
+                    if (action.id === "schedule") router.push("/schedule");
+                    if (action.id === "achievements")
+                      router.push("/achievements");
+                  }}
                 >
                   <action.icon className={`w-5 h-5 ${action.color}`} />
                   <span className="text-xs mt-1 text-gray-600">
@@ -337,8 +355,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 <User className="w-5 h-5 text-gray-500" />
               </div>
               <div>
-                <div className="font-medium text-gray-800">Guest User</div>
-                <div className="text-sm text-gray-500">guest@example.com</div>
+                <div className="font-medium text-gray-800">John Doe</div>
+                <div className="text-sm text-gray-500">
+                  john.doe@profile.com
+                </div>
               </div>
             </div>
           </div>

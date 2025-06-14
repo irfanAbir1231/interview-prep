@@ -14,6 +14,9 @@ const mockQuestions = [
 
 type InterviewState = "idle" | "asking" | "listening" | "finished";
 
+const QUESTION_TIME = 60; // seconds per question
+const INTERVIEW_TIME = 5 * 60; // total interview time (5 min for 5 questions)
+
 export default function InterviewPage() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -21,6 +24,12 @@ export default function InterviewPage() {
   const [interviewState, setInterviewState] = useState<InterviewState>("idle");
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState("");
+  const [questionTimer, setQuestionTimer] = useState(QUESTION_TIME);
+  const [interviewTimer, setInterviewTimer] = useState(INTERVIEW_TIME);
+  const [answers, setAnswers] = useState<string[]>(
+    Array(mockQuestions.length).fill("")
+  );
+  const recognitionRef = useRef<any>(null);
 
   // Initialize webcam
   useEffect(() => {
@@ -40,53 +49,119 @@ export default function InterviewPage() {
     setupWebcam();
   }, []);
 
-  // Handle text-to-speech for questions
+  // Interview and question timers
+  useEffect(() => {
+    let interviewInterval: NodeJS.Timeout | null = null;
+    let questionInterval: NodeJS.Timeout | null = null;
+    if (interviewState === "asking" || interviewState === "listening") {
+      interviewInterval = setInterval(() => {
+        setInterviewTimer((t) => {
+          if (t <= 1) {
+            clearInterval(interviewInterval!);
+            setInterviewState("finished");
+            router.push("/feedback");
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+      questionInterval = setInterval(() => {
+        setQuestionTimer((t) => {
+          if (t <= 1) {
+            clearInterval(questionInterval!);
+            stopListening();
+            goToNextQuestion();
+            return QUESTION_TIME;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interviewInterval) clearInterval(interviewInterval);
+      if (questionInterval) clearInterval(questionInterval);
+    };
+  }, [interviewState, currentQuestionIndex]);
+
+  // Start question
+  useEffect(() => {
+    if (interviewState === "asking") {
+      setQuestionTimer(QUESTION_TIME);
+      setTranscript("");
+      startListening();
+    }
+  }, [interviewState, currentQuestionIndex]);
+
+  // Add TTS effect for each question
   useEffect(() => {
     if (interviewState === "asking" && window.speechSynthesis) {
-      const utterance = new SpeechSynthesisUtterance(
+      const utterance = new window.SpeechSynthesisUtterance(
         mockQuestions[currentQuestionIndex]
       );
+      window.speechSynthesis.cancel(); // Stop any previous speech
       window.speechSynthesis.speak(utterance);
-
       utterance.onend = () => {
         setInterviewState("listening");
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewState, currentQuestionIndex]);
 
-  // Handle speech recognition
+  // Navigation
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex < mockQuestions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setInterviewState("asking");
+    } else {
+      setInterviewState("finished");
+      router.push("/feedback");
+    }
+  };
+  const goToPrevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+      setInterviewState("asking");
+    }
+  };
+
+  // Speech recognition
   const startListening = () => {
     if (!("webkitSpeechRecognition" in window)) {
       setError("Speech recognition is not supported in your browser.");
       return;
     }
-
     const SpeechRecognition = (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-
     recognition.continuous = true;
     recognition.interimResults = true;
-
     recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results)
         .map((result: unknown) => (result as SpeechRecognitionResult)[0])
         .map((result) => result.transcript)
         .join("");
       setTranscript(transcript);
+      setAnswers((prev) => {
+        const updated = [...prev];
+        updated[currentQuestionIndex] = transcript;
+        return updated;
+      });
     };
-
-    recognition.onend = () => {
-      if (currentQuestionIndex < mockQuestions.length - 1) {
-        setCurrentQuestionIndex((prev) => prev + 1);
-        setInterviewState("asking");
-      } else {
-        setInterviewState("finished");
-        router.push("/feedback/123-abc");
-      }
-    };
-
+    recognition.onend = () => {};
+    recognitionRef.current = recognition;
     recognition.start();
     setInterviewState("listening");
+  };
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+  };
+
+  // Add finish handler
+  const finishInterview = () => {
+    setInterviewState("finished");
+    router.push("/feedback");
   };
 
   return (
@@ -112,8 +187,22 @@ export default function InterviewPage() {
               }}
             />
           </div>
+          <div className="flex justify-between mt-2 text-sm text-gray-600">
+            <span>
+              Interview Time Left: {Math.floor(interviewTimer / 60)}:
+              {String(interviewTimer % 60).padStart(2, "0")}
+            </span>
+            <span>Question Time Left: {questionTimer}s</span>
+          </div>
         </div>
-
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={finishInterview}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold shadow hover:bg-red-700 transition-colors"
+          >
+            Finish Interview
+          </button>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - AI Agent */}
           <div className="space-y-6">
@@ -149,9 +238,32 @@ export default function InterviewPage() {
               <p className="text-lg text-gray-700 leading-relaxed">
                 {mockQuestions[currentQuestionIndex]}
               </p>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={goToPrevQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    currentQuestionIndex === 0
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  }`}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={goToNextQuestion}
+                  disabled={currentQuestionIndex === mockQuestions.length - 1}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    currentQuestionIndex === mockQuestions.length - 1
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
-
           {/* Right Column - User */}
           <div className="space-y-6">
             {error ? (
@@ -206,28 +318,14 @@ export default function InterviewPage() {
                   >
                     Start Interview
                   </button>
-                  <button
-                    onClick={startListening}
-                    disabled={
-                      interviewState !== "listening" ||
-                      currentQuestionIndex >= mockQuestions.length
-                    }
-                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                      interviewState === "listening"
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    }`}
-                  >
-                    Start Recording
-                  </button>
                 </div>
-                {transcript && (
+                {answers[currentQuestionIndex] && (
                   <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">
                       Your Answer:
                     </h3>
                     <p className="text-gray-700 leading-relaxed">
-                      {transcript}
+                      {answers[currentQuestionIndex]}
                     </p>
                   </div>
                 )}

@@ -1,21 +1,48 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { CheckIcon } from "@heroicons/react/24/solid";
 
-function CodingChallengeCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
+function CodingChallengeCard({ title, link }: { title: string; link: string }) {
+  const [done, setDone] = useState(false);
   return (
-    <div className="bg-white/30 backdrop-blur-md rounded-2xl shadow-lg p-6 border border-white/40 flex flex-col gap-2 transition-transform duration-200 hover:scale-105 hover:shadow-2xl hover:bg-white/50">
-      <h2 className="text-lg font-bold text-gray-900 drop-shadow-sm">
-        {title}
-      </h2>
-      <p className="text-gray-700 text-sm flex-1">{description}</p>
-      <button className="mt-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-md hover:from-blue-600 hover:to-indigo-700 transition-all text-sm font-semibold self-start focus:outline-none focus:ring-2 focus:ring-blue-400">
-        Solve
+    <div
+      className={`relative group bg-gray-100 border-2 rounded-2xl shadow-lg p-6 flex flex-col gap-2 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 hover:border-blue-600 ${
+        done ? "border-green-500 bg-green-50" : "border-blue-800"
+      }`}
+    >
+      {/* Custom checkbox toggle in top right */}
+      <button
+        aria-label={done ? "Mark as not done" : "Mark as done"}
+        onClick={() => setDone((v) => !v)}
+        className={`absolute top-4 right-4 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400
+          ${
+            done
+              ? "bg-green-500 border-green-500"
+              : "bg-white border-blue-400 hover:border-blue-600"
+          }
+        `}
+        style={{ boxShadow: "0 0 0 2px #3b82f6 inset" }}
+      >
+        {done ? (
+          <CheckIcon className="w-5 h-5 text-white" />
+        ) : (
+          <span className="block w-4 h-4 rounded-full border-2 border-blue-400 bg-white" />
+        )}
       </button>
+      <Link
+        href={link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xl font-bold text-blue-800 underline underline-offset-4 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+      >
+        {title}
+      </Link>
+      <div className="mt-1">
+        <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+          LeetCode
+        </span>
+      </div>
     </div>
   );
 }
@@ -25,23 +52,44 @@ export default function CodingChallengesPage() {
   const challenges = [
     {
       title: "Two Sum",
-      description: "Find two numbers that add up to a target.",
+      link: "https://leetcode.com/problems/two-sum/",
     },
     {
       title: "Reverse Linked List",
-      description: "Reverse a singly linked list.",
+      link: "https://leetcode.com/problems/reverse-linked-list/",
     },
     {
       title: "Valid Parentheses",
-      description: "Check if parentheses are valid.",
+      link: "https://leetcode.com/problems/valid-parentheses/",
     },
-    { title: "Merge Intervals", description: "Merge overlapping intervals." },
-    { title: "LRU Cache", description: "Design and implement an LRU cache." },
+    {
+      title: "Merge Intervals",
+      link: "https://leetcode.com/problems/merge-intervals/",
+    },
+    {
+      title: "LRU Cache",
+      link: "https://leetcode.com/problems/lru-cache/",
+    },
     {
       title: "Binary Search",
-      description: "Implement binary search on a sorted array.",
+      link: "https://leetcode.com/problems/binary-search/",
     },
   ];
+
+  const [dailyGoal, setDailyGoal] = useState(1);
+  const [checked, setChecked] = useState<{ [key: number]: boolean }>({});
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    const goals = localStorage.getItem("goals");
+    if (goals) setDailyGoal(JSON.parse(goals).dailyCoding || 1);
+    const progress = localStorage.getItem(`coding-progress-${today}`);
+    if (progress) setChecked(JSON.parse(progress));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(`coding-progress-${today}`, JSON.stringify(checked));
+  }, [checked, today]);
 
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-blue-950 to-indigo-900 px-4 py-10">
@@ -56,12 +104,57 @@ export default function CodingChallengesPage() {
       </header>
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {challenges.map((c, i) => (
-            <CodingChallengeCard
+          {challenges.slice(0, dailyGoal).map((c, i) => (
+            <div
               key={i}
-              title={c.title}
-              description={c.description}
-            />
+              className="relative group bg-gray-100 border-2 rounded-2xl shadow-lg p-6 flex flex-col gap-2 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 hover:border-blue-600"
+            >
+              <button
+                aria-label={checked[i] ? "Mark as not done" : "Mark as done"}
+                onClick={() =>
+                  setChecked((prev) => ({ ...prev, [i]: !prev[i] }))
+                }
+                className={`absolute top-4 right-4 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400
+                  ${
+                    checked[i]
+                      ? "bg-green-500 border-green-500"
+                      : "bg-white border-blue-400 hover:border-blue-600"
+                  }
+                `}
+                style={{ boxShadow: "0 0 0 2px #3b82f6 inset" }}
+              >
+                {checked[i] ? (
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                ) : (
+                  <span className="block w-4 h-4 rounded-full border-2 border-blue-400 bg-white" />
+                )}
+              </button>
+              <a
+                href={c.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xl font-bold text-blue-800 underline underline-offset-4 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+              >
+                {c.title}
+              </a>
+              <div className="mt-1">
+                <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                  LeetCode
+                </span>
+              </div>
+            </div>
           ))}
         </div>
       </section>
