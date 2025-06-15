@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { CheckIcon } from "@heroicons/react/24/solid";
+import { challenge_data } from "./data";
+
+
 
 function CodingChallengeCard({ title, link }: { title: string; link: string }) {
   const [done, setDone] = useState(false);
@@ -49,32 +52,7 @@ function CodingChallengeCard({ title, link }: { title: string; link: string }) {
 
 export default function CodingChallengesPage() {
   // Placeholder data
-  const challenges = [
-    {
-      title: "Two Sum",
-      link: "https://leetcode.com/problems/two-sum/",
-    },
-    {
-      title: "Reverse Linked List",
-      link: "https://leetcode.com/problems/reverse-linked-list/",
-    },
-    {
-      title: "Valid Parentheses",
-      link: "https://leetcode.com/problems/valid-parentheses/",
-    },
-    {
-      title: "Merge Intervals",
-      link: "https://leetcode.com/problems/merge-intervals/",
-    },
-    {
-      title: "LRU Cache",
-      link: "https://leetcode.com/problems/lru-cache/",
-    },
-    {
-      title: "Binary Search",
-      link: "https://leetcode.com/problems/binary-search/",
-    },
-  ];
+  const challenges = challenge_data
 
   const [dailyGoal, setDailyGoal] = useState(1);
   const [checked, setChecked] = useState<{ [key: number]: boolean }>({});
