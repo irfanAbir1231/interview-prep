@@ -1,32 +1,32 @@
-'use client';
-import { useAuth } from '@/src/lib/contexts/AuthContext';
-import { useState, useEffect } from 'react';
+"use client";
+import { useAuth } from "@/src/lib/contexts/AuthContext";
+import { useState, useEffect } from "react";
 
 export default function ProfilePage() {
   const { user, updateUserProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    title: '',
-    location: '',
-    bio: '',
-    avatar: '',
+    name: "",
+    email: "",
+    title: "",
+    location: "",
+    bio: "",
+    avatar: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // Initialize form with user data when it's available
   useEffect(() => {
     if (user) {
       setForm({
-        name: user.name || '',
-        email: user.email || '',
-        title: user.title || '',
-        location: user.location || '',
-        bio: user.bio || '',
-        avatar: user.avatar || '',
+        name: user.name || "",
+        email: user.email || "",
+        title: user.title || "",
+        location: user.location || "",
+        bio: user.bio || "",
+        avatar: user.avatar || "",
       });
     }
   }, [user]);
@@ -39,8 +39,8 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     setIsLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
       await updateUserProfile({
@@ -51,9 +51,9 @@ export default function ProfilePage() {
         avatar: form.avatar,
       });
       setEditing(false);
-      setSuccess('Profile updated successfully');
+      setSuccess("Profile updated successfully");
     } catch (err) {
-      setError(err.message || 'Failed to update profile');
+      setError((err as any).message || "Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -77,30 +77,39 @@ export default function ProfilePage() {
             <p className="text-green-700">{success}</p>
           </div>
         )}
-        
+
         {error && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
             <p className="text-red-700">{error}</p>
           </div>
         )}
-        
+
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
             <img
-              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
+              src={
+                user.avatar ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user.name
+                )}&background=random`
+              }
               alt="avatar"
               className="w-36 h-36 rounded-full border-4 border-purple-400 shadow-lg object-cover"
             />
             <span className="absolute bottom-2 right-2 bg-green-400 border-2 border-white w-6 h-6 rounded-full block"></span>
           </div>
-          <h2 className="mt-4 text-4xl font-bold text-gray-800">
-            {user.name}
-          </h2>
-          <p className="text-purple-600 font-medium text-lg">{user.title || 'No title set'}</p>
-          <p className="text-gray-500 text-base">{user.location || 'No location set'}</p>
+          <h2 className="mt-4 text-4xl font-bold text-gray-800">{user.name}</h2>
+          <p className="text-purple-600 font-medium text-lg">
+            {user.title || "No title set"}
+          </p>
+          <p className="text-gray-500 text-base">
+            {user.location || "No location set"}
+          </p>
         </div>
         <div className="mb-8 text-center">
-          <p className="text-gray-700 italic text-lg">{user.bio || 'No bio set'}</p>
+          <p className="text-gray-700 italic text-lg">
+            {user.bio || "No bio set"}
+          </p>
         </div>
         {editing ? (
           <div className="space-y-4">
@@ -153,7 +162,7 @@ export default function ProfilePage() {
                 onClick={handleSave}
                 disabled={isLoading}
               >
-                {isLoading ? 'Saving...' : 'Save'}
+                {isLoading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
