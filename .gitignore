@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+interview-prep.db
 /.pnp
 .pnp.*
 .yarn/*
