@@ -1,51 +1,48 @@
-import { NextResponse, type NextRequest } from "next/server"
+// import {type NextRequest } from "next/server"
 
-interface Feedback {
-  interviewId: string
-  overallScore: number
-  summary: string
-  questionBreakdown: {
-    question: string
-    userAnswer: string
-    feedback: string
-  }[]
-}
+import { NextResponse } from 'next/server';
+import { openDb } from '@/src/lib/db';
+import { cookies } from 'next/headers';
+import { getAuthUser } from '@/src/lib/auth';
 
-// Explicit context type
-type RouteParams = {
-  params: {
-    id: string
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const user = await getAuthUser(cookies());
+
+    if (!user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id: interviewId } = await params;
+    const db = await openDb();
+
+    // Fetch overall feedback for the interview
+    const overallFeedback = await db.get(
+      `SELECT overall_feedback, overall_score FROM feedbacks WHERE interview_id = ?`,
+      interviewId
+    );
+
+    // Fetch individual question feedback
+    const questionFeedbacks = await db.all(
+      `SELECT question, feedback, score FROM question_feedbacks WHERE interview_id = ? ORDER BY id ASC`,
+      interviewId
+    );
+
+    if (!overallFeedback && questionFeedbacks.length === 0) {
+      return NextResponse.json({ message: 'Feedback not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      overallFeedback: overallFeedback ? overallFeedback.overall_feedback : null,
+      overallScore: overallFeedback ? overallFeedback.overall_score : null,
+      feedbackResults: questionFeedbacks.map((qf: any) => ({
+        question: qf.question,
+        feedback: qf.feedback,
+        score: qf.score,
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching feedback details:', error);
+    return NextResponse.json({ error: 'Failed to fetch feedback details' }, { status: 500 });
   }
-}
-
-export async function GET(
-  req: NextRequest,
-  context: RouteParams
-) {
-  const { id } = context.params
-
-  const feedback: Feedback = {
-    interviewId: id,
-    overallScore: 85,
-    summary:
-      "Strong technical knowledge demonstrated. Some areas for improvement in system design explanations.",
-    questionBreakdown: [
-      {
-        question: "Explain the concept of React hooks and their advantages.",
-        userAnswer:
-          "React hooks are functions that allow us to use state and lifecycle features in functional components. They eliminate the need for class components and make code more reusable.",
-        feedback:
-          "Good explanation of hooks. Consider adding specific examples of commonly used hooks like useState and useEffect.",
-      },
-      {
-        question: "Design a scalable chat application system.",
-        userAnswer:
-          "Would use WebSocket for real-time communication, Redis for message caching, and a database for message persistence.",
-        feedback:
-          "Basic approach is correct. Could improve by discussing load balancing and handling offline messages.",
-      },
-    ],
-  }
-
-  return NextResponse.json(feedback)
 }

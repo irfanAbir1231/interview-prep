@@ -1,30 +1,39 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Briefcase, Code, Users, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const stats = [
+// Define the stats structure
+type StatsItem = {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  color: string;
+};
+
+// Initial stats with zero values
+const initialStats: StatsItem[] = [
   {
     label: "Interviews Completed",
-    value: 12,
+    value: 0,
     icon: Briefcase,
     color: "text-blue-500",
   },
   {
     label: "Coding Challenges",
-    value: 34,
+    value: 0,
     icon: Code,
     color: "text-purple-500",
   },
   {
     label: "Behavioral Sessions",
-    value: 7,
+    value: 0,
     icon: Users,
     color: "text-pink-500",
   },
   {
     label: "Community Posts",
-    value: 19,
+    value: 0,
     icon: MessageCircle,
     color: "text-green-500",
   },
@@ -32,6 +41,73 @@ const stats = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [stats, setStats] = useState<StatsItem[]>(initialStats);
+  const [recentInterviews, setRecentInterviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        if (loading) {
+          setError(null);
+        }
+
+        setLoading(true);
+        const response = await fetch('/api/dashboard');
+        
+        if (response.status === 401) {
+          router.push('/login');
+          return;
+        }
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard statistics');
+        }
+        
+        const data = await response.json();
+        
+        // Update stats with real data
+        setStats([
+          {
+            label: "Interviews Completed",
+            value: data.interviewsCompleted,
+            icon: Briefcase,
+            color: "text-blue-500",
+          },
+          {
+            label: "Coding Challenges",
+            value: data.codingChallenges || 0,
+            icon: Code,
+            color: "text-purple-500",
+          },
+          {
+            label: "Behavioral Sessions",
+            value: data.behavioralSessions || 0,
+            icon: Users,
+            color: "text-pink-500",
+          },
+          // {
+          //   label: "Community Posts",
+          //   value: data.communityPosts || 0,
+          //   icon: MessageCircle,
+          //   color: "text-green-500",
+          // },
+        ]);
+
+        // Store recent interviews to pass to the Recent Activity section
+        setRecentInterviews(data.recentInterviews || []);
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+        setError('Failed to load dashboard statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 py-12 px-4 flex flex-col items-center">
@@ -42,7 +118,7 @@ export default function DashboardPage() {
         <h1 className="text-4xl font-extrabold text-gray-900 mb-10 tracking-tight">
           Dashboard
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {stats.map((stat) => (
             <div
               key={stat.label}
@@ -71,24 +147,24 @@ export default function DashboardPage() {
               Recent Activity
             </h2>
             <ul className="divide-y divide-gray-100">
-              <li className="py-4 flex items-center justify-between">
-                <span className="text-gray-700 font-medium">
-                  Completed Mock Interview
-                </span>
-                <span className="text-xs text-gray-400">2 hours ago</span>
-              </li>
-              <li className="py-4 flex items-center justify-between">
-                <span className="text-gray-700 font-medium">
-                  Solved Coding Challenge
-                </span>
-                <span className="text-xs text-gray-400">1 day ago</span>
-              </li>
-              <li className="py-4 flex items-center justify-between">
-                <span className="text-gray-700 font-medium">
-                  Joined Community Discussion
-                </span>
-                <span className="text-xs text-gray-400">3 days ago</span>
-              </li>
+              {loading ? (
+                <li className="py-4 text-gray-500">Loading recent interviews...</li>
+              ) : error ? (
+                <li className="py-4 text-red-500">Error: {error}</li>
+              ) : recentInterviews.length === 0 ? (
+                <li className="py-4 text-gray-500">No recent interviews.</li>
+              ) : (
+                recentInterviews.map((activity: any) => (
+                  <li key={activity.id} className="py-4 flex items-center justify-between">
+                    <a href={`/feedback?interviewId=${activity.id}`} className="text-gray-700 font-medium hover:underline">
+                      {activity.jobTitle}
+                    </a>
+                    <span className="text-xs text-gray-400">
+                      {new Date(activity.date).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 flex flex-col justify-between">
@@ -123,7 +199,7 @@ export default function DashboardPage() {
             </ul>
           </div>
         </div>
-        {/*  */}
+
       </div>
     </div>
   );

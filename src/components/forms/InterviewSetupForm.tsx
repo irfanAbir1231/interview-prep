@@ -13,11 +13,46 @@ export function InterviewSetupForm() {
     yearsOfExperience: "",
   });
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     // In a real app, we'd create an interview session here
-    const mockInterviewId = "123-abc";
-    router.push(`/interview/${mockInterviewId}`);
+    try {
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobTitle: formData.jobTitle, jobDescription: formData.jobDescription }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedQuestions = data.questions;
+
+      // In a real app, we'd create an interview session here
+      const createInterviewResponse = await fetch('/api/interview/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!createInterviewResponse.ok) {
+        throw new Error(`HTTP error! status: ${createInterviewResponse.status}`);
+      }
+
+      const interviewData = await createInterviewResponse.json();
+      const interviewId = interviewData.interviewId;
+
+      router.push(`/interview/${interviewId}?questions=${encodeURIComponent(JSON.stringify(generatedQuestions))}`);
+    } catch (error) {
+      console.error('Error generating questions or starting interview:', error);
+      // Handle error, e.g., show a message to the user
+    }
   };
 
   return (

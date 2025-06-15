@@ -1,16 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
+
 
 // Mock interview questions
-const mockQuestions = [
-  "Tell me about your experience with React and Next.js.",
-  "How do you handle state management in large applications?",
-  "Explain the concept of server-side rendering and its benefits.",
-  "How do you approach testing in your applications?",
-  "What's your experience with TypeScript?",
-];
+
 
 type InterviewState = "idle" | "asking" | "listening" | "finished";
 
@@ -19,6 +14,8 @@ const INTERVIEW_TIME = 5 * 60; // total interview time (5 min for 5 questions)
 
 export default function InterviewPage() {
   const router = useRouter();
+  const params = useParams();
+  const interviewId = params.id as string;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [interviewState, setInterviewState] = useState<InterviewState>("idle");
@@ -26,10 +23,43 @@ export default function InterviewPage() {
   const [error, setError] = useState("");
   const [questionTimer, setQuestionTimer] = useState(QUESTION_TIME);
   const [interviewTimer, setInterviewTimer] = useState(INTERVIEW_TIME);
-  const [answers, setAnswers] = useState<string[]>(
-    Array(mockQuestions.length).fill("")
-  );
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [jobTitle, setJobTitle] = useState<string>("");
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const fetchInterviewDetails = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const questionsParam = urlParams.get('questions');
+      if (questionsParam) {
+        try {
+          const parsedQuestions = JSON.parse(decodeURIComponent(questionsParam));
+          setQuestions(parsedQuestions);
+          setAnswers(Array(parsedQuestions.length).fill(""));
+        } catch (e) {
+          console.error("Failed to parse questions from URL", e);
+        }
+      }
+
+      // Fetch job title from API
+      try {
+        const response = await fetch(`/api/interview/${interviewId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.jobTitle) {
+          setJobTitle(data.jobTitle);
+        }
+      } catch (e) {
+        console.error("Failed to fetch interview details:", e);
+      }
+    };
+
+    fetchInterviewDetails();
+  }, [interviewId]);
 
   // Initialize webcam
   useEffect(() => {
@@ -57,9 +87,9 @@ export default function InterviewPage() {
       interviewInterval = setInterval(() => {
         setInterviewTimer((t) => {
           if (t <= 1) {
-            clearInterval(interviewInterval!);
+            clearInterval(interviewInterval!); 
             setInterviewState("finished");
-            router.push("/feedback");
+            processFeedback();
             return 0;
           }
           return t - 1;
@@ -81,7 +111,7 @@ export default function InterviewPage() {
       if (interviewInterval) clearInterval(interviewInterval);
       if (questionInterval) clearInterval(questionInterval);
     };
-  }, [interviewState, currentQuestionIndex]);
+  }, [interviewState, currentQuestionIndex, questions, answers, router, interviewId]);
 
   // Start question
   useEffect(() => {
@@ -94,9 +124,9 @@ export default function InterviewPage() {
 
   // Add TTS effect for each question
   useEffect(() => {
-    if (interviewState === "asking" && window.speechSynthesis) {
+    if (interviewState === "asking" && window.speechSynthesis && questions.length > 0) {
       const utterance = new window.SpeechSynthesisUtterance(
-        mockQuestions[currentQuestionIndex]
+        questions[currentQuestionIndex]
       );
       window.speechSynthesis.cancel(); // Stop any previous speech
       window.speechSynthesis.speak(utterance);
@@ -105,16 +135,23 @@ export default function InterviewPage() {
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interviewState, currentQuestionIndex]);
+  }, [interviewState, currentQuestionIndex, questions]);
 
   // Navigation
   const goToNextQuestion = () => {
-    if (currentQuestionIndex < mockQuestions.length - 1) {
+    // Save the current answer before moving to the next question
+    setAnswers((prev) => {
+      const updated = [...prev];
+      updated[currentQuestionIndex] = transcript.trim(); // Save current transcript as the answer, or empty if skipped
+      return updated;
+    });
+
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setInterviewState("asking");
     } else {
       setInterviewState("finished");
-      router.push("/feedback");
+      processFeedback();
     }
   };
   const goToPrevQuestion = () => {
@@ -158,11 +195,67 @@ export default function InterviewPage() {
     }
   };
 
-  // Add finish handler
-  const finishInterview = () => {
-    setInterviewState("finished");
-    router.push("/feedback");
+  const processFeedback = async () => {
+    setLoadingFeedback(true);
+    try {
+      const response = await fetch('/api/process-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          interviewId,
+          questions,
+          answers,
+          jobTitle,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Received feedback data:', data);
+      if (data) {
+        sessionStorage.setItem('interviewFeedback', JSON.stringify(data));
+        router.push(`/feedback?interviewId=${interviewId}`);
+      } else {
+        setError('Received empty or invalid feedback data.');
+        console.error('Received empty or invalid feedback data:', data);
+      }
+    } catch (error) {
+      console.error('Error processing feedback:', error);
+      setError('Failed to process feedback.');
+    } finally {
+      setLoadingFeedback(false);
+    }
   };
+
+  // Add finish handler
+  const finishInterview = async () => {
+    // Ensure all questions have been answered before finishing
+    if (currentQuestionIndex < questions.length - 1) {
+      alert("Please complete all questions before ending the interview.");
+      return;
+    }
+
+    // Save the last answer
+    setAnswers((prev) => {
+      const updated = [...prev];
+      updated[currentQuestionIndex] = transcript.trim();
+      return updated;
+    });
+
+    // Proceed to feedback page
+    processFeedback();
+
+     // Proceed to feedback page
+     setInterviewState("finished");
+     processFeedback();
+
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -174,7 +267,7 @@ export default function InterviewPage() {
               Technical Interview Session
             </h1>
             <span className="text-sm font-medium text-gray-500">
-              Question {currentQuestionIndex + 1} of {mockQuestions.length}
+              Question {currentQuestionIndex + 1} of {questions.length}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -182,7 +275,7 @@ export default function InterviewPage() {
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{
                 width: `${
-                  ((currentQuestionIndex + 1) / mockQuestions.length) * 100
+                  ((currentQuestionIndex + 1) / questions.length) * 100
                 }%`,
               }}
             />
@@ -198,6 +291,7 @@ export default function InterviewPage() {
         <div className="flex justify-end mb-4">
           <button
             onClick={finishInterview}
+            disabled={questions.length === 0}
             className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold shadow hover:bg-red-700 transition-colors"
           >
             Finish Interview
@@ -236,7 +330,7 @@ export default function InterviewPage() {
                 Current Question:
               </h2>
               <p className="text-lg text-gray-700 leading-relaxed">
-                {mockQuestions[currentQuestionIndex]}
+                {questions[currentQuestionIndex]}
               </p>
               <div className="flex gap-2 mt-4">
                 <button
@@ -252,9 +346,9 @@ export default function InterviewPage() {
                 </button>
                 <button
                   onClick={goToNextQuestion}
-                  disabled={currentQuestionIndex === mockQuestions.length - 1}
+                  disabled={currentQuestionIndex === questions.length - 1}
                   className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    currentQuestionIndex === mockQuestions.length - 1
+                    currentQuestionIndex === questions.length - 1
                       ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                       : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                   }`}

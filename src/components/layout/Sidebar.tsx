@@ -38,6 +38,27 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     Record<string, boolean>
   >({});
 
+  const [userName, setUserName] = React.useState("Guest");
+  const [userEmail, setUserEmail] = React.useState("guest@example.com");
+
+  React.useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user');
+        if (response.ok) {
+          const data = await response.json();
+          setUserName(data.name);
+          setUserEmail(data.email);
+        } else {
+          console.error('Failed to fetch user data');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
+
   const toggleMenu = (menuId: string) => {
     setExpandedMenus((prev) => ({
       ...prev,
@@ -84,30 +105,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       href: "/progress",
       badge: null,
     },
-    {
-      id: "community",
-      label: "Community",
-      icon: Users,
-      href: "/community",
-      badge: "24",
-      submenu: [
-        {
-          id: "discussions",
-          label: "Discussions",
-          href: "/community/discussions",
-        },
-        {
-          id: "success-stories",
-          label: "Success Stories",
-          href: "/community/stories",
-        },
-        {
-          id: "mentorship",
-          label: "Mentorship",
-          href: "/community/mentorship",
-        },
-      ],
-    },
+
   ];
 
   const quickActions = [
@@ -348,20 +346,22 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             </div>
           </div>
 
-          {/* User profile */}
-          <div className="p-4 border-t">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                <User className="w-5 h-5 text-gray-500" />
-              </div>
-              <div>
-                <div className="font-medium text-gray-800">John Doe</div>
-                <div className="text-sm text-gray-500">
-                  john.doe@profile.com
+            {/* User Profile / Logout */}
+            <div className="mt-auto p-4 border-t border-gray-200">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">{userName}</p>
+                  <p className="text-sm text-gray-500">{userEmail}</p>
                 </div>
               </div>
+              <button className="w-full flex items-center justify-center space-x-2 p-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors duration-200">
+                <LogOut className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
             </div>
-          </div>
         </div>
       </motion.aside>
     </>

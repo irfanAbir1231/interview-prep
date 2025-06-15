@@ -6,7 +6,7 @@ import "./globals.css";
 import Script from "next/script";
 import { useState } from "react";
 import AvatarDropdown from "../components/layout/AvatarDropdown";
-import NotificationBell from "../components/layout/NotificationBell";
+import { AuthProvider } from "../lib/contexts/AuthContext";
 
 // Sidebar is now the main navigation. Navbar removed.
 
@@ -32,37 +32,38 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen w-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 overflow-x-hidden">
-        {/* Sidebar */}
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        {/* Hamburger for mobile */}
-        <button
-          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <svg
-            className="w-6 h-6 text-gray-800"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
+        <AuthProvider>
+          {/* Sidebar */}
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          {/* Hamburger for mobile */}
+          <button
+            className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
+            onClick={() => setSidebarOpen(true)}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-        {/* Notification and Avatar at top right */}
-        <div className="fixed top-6 right-20 z-50 flex items-center space-x-6">
-          <NotificationBell />
-          <AvatarDropdown />
-        </div>
-        {/* Main content */}
-        <div className="flex flex-col min-h-screen">
-          <main className="w-full flex-grow">{children}</main>
-          <Footer />
-        </div>
+            <svg
+              className="w-6 h-6 text-gray-800"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          {/* Avatar at top right */}
+          <div className="fixed top-6 right-20 z-50 flex items-center">
+            <AvatarDropdown />
+          </div>
+          {/* Main content */}
+          <div className="flex flex-col min-h-screen">
+            <main className="w-full flex-grow">{children}</main>
+            <Footer />
+          </div>
+        </AuthProvider>
         <Script id="intersection-observer">
           {`document.addEventListener('DOMContentLoaded', function() {
             const observerOptions = {
