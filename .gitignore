@@ -13,6 +13,7 @@ interview-prep.db
 
 # testing
 /coverage
+interview-prep.db
 
 # next.js
 /.next/

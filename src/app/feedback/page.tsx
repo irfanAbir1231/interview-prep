@@ -23,27 +23,40 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     const loadFeedback = () => {
-      console.log("Attempting to load feedback...");
-      const storedFeedback = sessionStorage.getItem("interviewFeedback");
+      console.log('Attempting to load feedback...');
+      const storedFeedback = sessionStorage.getItem('interviewFeedback');
       if (storedFeedback) {
-        console.log("Found stored feedback in sessionStorage.");
+        console.log('Found stored feedback in sessionStorage.');
         try {
           const parsedData = JSON.parse(storedFeedback);
           setFeedbackData(parsedData);
-          console.log("Successfully parsed and set feedback data:", parsedData);
+          console.log('Successfully parsed and set feedback data:', parsedData);
         } catch (e) {
           console.error("Error parsing stored feedback:", e);
           setError("Failed to load feedback data. Check console for details.");
         }
       } else {
-        console.log("No feedback data found in sessionStorage.");
+        console.log('No feedback data found in sessionStorage.');
         setError("No feedback data found. Please complete an interview first.");
       }
       setLoading(false); // Always set loading to false after attempting to load
-      console.log("Loading state set to false.");
+      console.log('Loading state set to false.');
     };
-    loadFeedback();
-  }, []);
+
+    if (router.isReady) {
+      console.log('Router is ready. Calling loadFeedback().');
+      loadFeedback();
+    } else {
+      console.log('Router is not ready yet. Setting a timeout to check again.');
+      // Fallback for router.isReady not becoming true
+      const timeoutId = setTimeout(() => {
+        console.log('Timeout triggered. Forcing loadFeedback().');
+        loadFeedback();
+      }, 3000); // Wait for 3 seconds
+
+      return () => clearTimeout(timeoutId); // Cleanup timeout
+    }
+  }, [router.isReady]);
 
   if (loading) {
     return (
@@ -77,12 +90,8 @@ export default function FeedbackPage() {
         </h1>
         {feedbackData.overallFeedback && (
           <div className="bg-blue-50 p-6 rounded-2xl shadow-lg border border-blue-100 mb-6">
-            <h3 className="text-xl font-semibold text-blue-800 mb-3">
-              Overall Summary:
-            </h3>
-            <p className="text-blue-700 leading-relaxed mb-4">
-              {feedbackData.overallFeedback}
-            </p>
+            <h3 className="text-xl font-semibold text-blue-800 mb-3">Overall Summary:</h3>
+            <p className="text-blue-700 leading-relaxed mb-4">{feedbackData.overallFeedback}</p>
             {feedbackData.overallScore !== null && (
               <p className="text-lg font-bold text-blue-600">
                 Overall Score: {feedbackData.overallScore.toFixed(2)}/10
@@ -92,19 +101,12 @@ export default function FeedbackPage() {
         )}
         <div className="space-y-6">
           {feedbackData.feedbackResults.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100"
-            >
+            <div key={idx} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
                 Question {idx + 1}: {item.question}
               </h3>
-              <p className="text-gray-700 leading-relaxed mb-2">
-                <strong>Your Answer:</strong> {item.user_answer}
-              </p>
-              <p className="text-gray-700 leading-relaxed mb-4">
-                <strong>Feedback:</strong> {item.feedback}
-              </p>
+              <p className="text-gray-700 leading-relaxed mb-2"><strong>Your Answer:</strong> {item.user_answer}</p>
+              <p className="text-gray-700 leading-relaxed mb-4"><strong>Feedback:</strong> {item.feedback}</p>
               <div className="flex items-center justify-between">
                 <p className="text-lg font-bold text-blue-600">
                   Score: {item.score}/10

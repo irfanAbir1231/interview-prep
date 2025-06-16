@@ -1,26 +1,18 @@
 "use client";
 // @ts-nocheck
-// NOTE: You must install lucide-react for icons to work: npm install lucide-react
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "@clerk/nextjs";
 import {
   Home,
   BookOpen,
-  Users,
   BarChart3,
-  Settings,
-  HelpCircle,
-  User,
-  Bell,
-  Search,
-  Menu,
-  X,
   ChevronDown,
-  Star,
   Trophy,
   Target,
   Calendar,
   MessageSquare,
+  X,
   LogOut,
 } from "lucide-react";
 import type { Variants } from "framer-motion";
@@ -34,30 +26,11 @@ interface SidebarProps {
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const router = useRouter();
   const [activeItem, setActiveItem] = React.useState("dashboard");
-  const [expandedMenus, setExpandedMenus] = React.useState<
-    Record<string, boolean>
-  >({});
+  const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({});
 
-  const [userName, setUserName] = React.useState("Guest");
-  const [userEmail, setUserEmail] = React.useState("guest@example.com");
-
-  React.useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user');
-        if (response.ok) {
-          const data = await response.json();
-          setUserName(data.name);
-          setUserEmail(data.email);
-        } else {
-          console.error('Failed to fetch user data');
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
+  const { isLoaded, isSignedIn, user } = useUser();
+  const userName = user?.fullName || "Guest";
+  const userEmail = user?.primaryEmailAddress?.emailAddress || "guest@example.com";
 
   const toggleMenu = (menuId: string) => {
     setExpandedMenus((prev) => ({
@@ -81,21 +54,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       href: "/practice",
       badge: "New",
       submenu: [
-        {
-          id: "mock-interview",
-          label: "Mock Interview",
-          href: "/practice/mock",
-        },
-        {
-          id: "coding-challenges",
-          label: "Coding Challenges",
-          href: "/practice/coding",
-        },
-        {
-          id: "behavioral",
-          label: "Behavioral Questions",
-          href: "/practice/behavioral",
-        },
+        { id: "mock-interview", label: "Mock Interview", href: "/practice/mock" },
+        { id: "coding-challenges", label: "Coding Challenges", href: "/practice/coding" },
+        { id: "behavioral", label: "Behavioral Questions", href: "/practice/behavioral" },
       ],
     },
     {
@@ -105,72 +66,28 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       href: "/progress",
       badge: null,
     },
-
   ];
 
   const quickActions = [
-    {
-      id: "achievements",
-      label: "Achievements",
-      icon: Trophy,
-      color: "text-yellow-500",
-    },
-    {
-      id: "goals",
-      label: "Goals",
-      icon: Target,
-      href: "/goals",
-      color: "text-blue-500",
-    },
-    {
-      id: "schedule",
-      label: "Schedule",
-      icon: Calendar,
-      color: "text-green-500",
-    },
-    {
-      id: "feedback",
-      label: "Feedback",
-      icon: MessageSquare,
-      color: "text-purple-500",
-    },
+    { id: "achievements", label: "Achievements", icon: Trophy, color: "text-yellow-500" },
+    { id: "goals", label: "Goals", icon: Target, href: "/goals", color: "text-blue-500" },
+    { id: "schedule", label: "Schedule", icon: Calendar, color: "text-green-500" },
+    { id: "feedback", label: "Feedback", icon: MessageSquare, color: "text-purple-500" },
   ];
 
   const sidebarVariants: Variants = {
-    open: {
-      x: 0,
-      transition: { type: "spring", stiffness: 300, damping: 30 },
-    },
-    closed: {
-      x: "-100%",
-      transition: { type: "spring", stiffness: 300, damping: 30 },
-    },
+    open: { x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } },
+    closed: { x: "-100%", transition: { type: "spring", stiffness: 300, damping: 30 } },
   };
 
   const overlayVariants = {
-    open: {
-      opacity: 0.5,
-      display: "block",
-    },
-    closed: {
-      opacity: 0,
-      transitionEnd: {
-        display: "none",
-      },
-    },
+    open: { opacity: 0.5, display: "block" },
+    closed: { opacity: 0, transitionEnd: { display: "none" } },
   };
 
-  const NavigationItem = ({
-    item,
-    isActive,
-    onClick,
-  }: {
-    item: any;
-    isActive: boolean;
-    onClick: (id: string) => void;
-  }) => {
+  const NavigationItem = ({ item, isActive, onClick }: any) => {
     const Icon = item.icon;
-    const hasSubmenu = item.submenu && item.submenu.length > 0;
+    const hasSubmenu = item.submenu?.length > 0;
     const isExpanded = expandedMenus[item.id];
 
     return (
@@ -183,15 +100,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           }`}
           onClick={() => {
             onClick(item.id);
-
             if (item.href && !hasSubmenu) {
               router.push(item.href);
               return;
             }
-
-            if (hasSubmenu) {
-              toggleMenu(item.id);
-            }
+            if (hasSubmenu) toggleMenu(item.id);
           }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -203,22 +116,12 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
           <div className="flex items-center space-x-2">
             {item.badge && (
-              <span
-                className={`px-2 py-1 text-xs rounded-full ${
-                  item.badge === "New"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}
-              >
+              <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
                 {item.badge}
               </span>
             )}
             {hasSubmenu && (
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  isExpanded ? "rotate-180" : ""
-                }`}
-              />
+              <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
             )}
           </div>
         </motion.div>
@@ -252,23 +155,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     );
   };
 
-  const QuickActionItem = ({ action }: { action: any }) => {
-    const Icon = action.icon;
-    return (
-      <motion.div
-        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <Icon className={`w-4 h-4 ${action.color}`} />
-        <span className="text-sm text-gray-700">{action.label}</span>
-      </motion.div>
-    );
-  };
-
   return (
     <>
-      {/* Backdrop overlay */}
+      {/* Backdrop */}
       <motion.div
         className="fixed inset-0 bg-black z-40"
         initial="closed"
@@ -277,6 +166,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         onClick={onClose}
       />
 
+      {/* Sidebar */}
       <motion.aside
         className="fixed top-0 left-0 h-screen bg-white z-50 shadow-2xl"
         initial="closed"
@@ -284,25 +174,18 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         variants={sidebarVariants}
         style={{ width: "280px" }}
       >
-        {/* Content wrapper */}
         <div className="flex flex-col h-full">
-          {/* Header with close button */}
+          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">IP</span>
               </div>
-              <span
-                className="font-semibold text-gray-800 cursor-pointer"
-                onClick={() => router.push("/")}
-              >
+              <span className="font-semibold text-gray-800 cursor-pointer" onClick={() => router.push("/")}>
                 Interview Prep
               </span>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
@@ -310,16 +193,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4">
             {navigationItems.map((item) => (
-              <NavigationItem
-                key={item.id}
-                item={item}
-                isActive={activeItem === item.id}
-                onClick={setActiveItem}
-              />
+              <NavigationItem key={item.id} item={item} isActive={activeItem === item.id} onClick={setActiveItem} />
             ))}
           </nav>
 
-          {/* Quick actions */}
+          {/* Quick Actions */}
           <div className="p-4 border-t">
             <div className="grid grid-cols-2 gap-2">
               {quickActions.map((action) => (
@@ -329,39 +207,35 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    if (action.id === "feedback")
-                      router.push("/feedback/all-feedbacks");
+                    if (action.id === "feedback") router.push("/feedback/all-feedbacks");
                     if (action.id === "goals") router.push("/goals");
                     if (action.id === "schedule") router.push("/schedule");
-                    if (action.id === "achievements")
-                      router.push("/achievements");
+                    if (action.id === "achievements") router.push("/achievements");
                   }}
                 >
                   <action.icon className={`w-5 h-5 ${action.color}`} />
-                  <span className="text-xs mt-1 text-gray-600">
-                    {action.label}
-                  </span>
+                  <span className="text-xs mt-1 text-gray-600">{action.label}</span>
                 </motion.button>
               ))}
             </div>
           </div>
 
-            {/* User Profile / Logout */}
-            <div className="mt-auto p-4 border-t border-gray-200">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">{userName}</p>
-                  <p className="text-sm text-gray-500">{userEmail}</p>
-                </div>
+          {/* User Info and Logout */}
+          <div className="mt-auto p-4 border-t border-gray-200">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                {userName.charAt(0).toUpperCase()}
               </div>
-              <button className="w-full flex items-center justify-center space-x-2 p-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors duration-200">
-                <LogOut className="w-5 h-5" />
-                <span>Logout</span>
-              </button>
+              <div>
+                <p className="font-semibold text-gray-800">{userName}</p>
+                <p className="text-sm text-gray-500">{userEmail}</p>
+              </div>
             </div>
+            <button className="w-full flex items-center justify-center space-x-2 p-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors duration-200">
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </motion.aside>
     </>
