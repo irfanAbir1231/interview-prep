@@ -1,50 +1,61 @@
-import { NextResponse } from 'next/server';
-import { openDb } from '@/src/lib/db';
+import { NextResponse } from "next/server";
+import { connectMongo } from "@/src/lib/db";
+import mongoose, { Schema, model, models } from "mongoose";
 
-import { cookies } from 'next/headers';
-import { getAuthUser } from '@/src/lib/auth';
+import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+
+const InterviewSchema = new Schema({
+  user_id: {
+    type: String,
+    ref: "User",
+    required: true,
+  },
+  job_title: String,
+  job_description: String,
+  tech_expertise: String,
+  years_experience: Number,
+  status: { type: String, default: "In Progress" },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
+const InterviewModel = models.Interview || model("Interview", InterviewSchema);
+
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser(cookies());
-
-    if (!user) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    await connectMongo();
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-
-    const userId = user.id;
-
-    // If you don't need user-specific data for the dashboard, you can remove the userId filter
-    // and fetch all completed interviews.
-
-
-    const db = await openDb();
-
-    // Fetch interviews completed by the user
-    const interviewsCompletedResult = await db.get(
-      `SELECT COUNT(*) as count FROM interviews WHERE user_id = ? AND status = 'Completed'`,
-      userId
-    );
-    const interviewsCompleted = interviewsCompletedResult ? interviewsCompletedResult.count : 0;
-
-    // Fetch recent interview activities (e.g., last 3 completed interviews)
-    const recentActivities = await db.all(
-      `SELECT id, job_title, created_at FROM interviews WHERE user_id = ? AND status = 'Completed' ORDER BY created_at DESC LIMIT 3`,
-      userId
-    );
-
+    const userObjId = userId;
+    const interviewsCompleted = await InterviewModel.countDocuments({
+      user_id: userObjId,
+      status: "Completed",
+    });
+    const recentActivities = await InterviewModel.find({
+      user_id: userObjId,
+      status: "Completed",
+    })
+      .sort({ created_at: -1 })
+      .limit(3)
+      .lean();
     return NextResponse.json({
-      interviewsCompleted: interviewsCompleted,
-      codingChallenges: 0, // Placeholder for now
-      behavioralSessions: 0, // Placeholder for now
-      communityPosts: 0, // Placeholder for now
-      recentInterviews: recentActivities.map((activity: any) => ({
-        id: activity.id,
+      interviewsCompleted,
+      codingChallenges: 0,
+      behavioralSessions: 0,
+      communityPosts: 0,
+      recentInterviews: recentActivities.map((activity) => ({
+        id: activity._id,
         jobTitle: activity.job_title,
         date: activity.created_at,
       })),
     });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 });
+    console.error("Error fetching dashboard data:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch dashboard data" },
+      { status: 500 }
+    );
   }
 }

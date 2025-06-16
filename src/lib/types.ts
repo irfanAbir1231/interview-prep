@@ -1,5 +1,5 @@
 export type User = {
-  id: number;
+  id: string;
   email: string;
   password: string;
   name: string;
@@ -7,15 +7,15 @@ export type User = {
   location?: string;
   bio?: string;
   avatar?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: Date;
+  updated_at?: Date;
 };
 
 export type Interview = {
   id: string;
   jobTitle: string;
   date: string;
-  status: 'Completed' | 'In Progress';
+  status: "Completed" | "In Progress";
 };
 
 export type Feedback = {
@@ -30,7 +30,7 @@ export type Feedback = {
 };
 
 export type AuthState = {
-  user: Omit<User, 'password'> | null;
+  user: Omit<User, "password"> | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 };

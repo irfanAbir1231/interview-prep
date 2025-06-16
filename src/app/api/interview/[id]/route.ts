@@ -1,27 +1,55 @@
-import { openDb } from '@/src/lib/db';
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { getAuthUser } from '@/src/lib/auth';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { connectMongo } from "@/src/lib/db";
+import mongoose, { Schema, model, models } from "mongoose";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+const InterviewSchema = new Schema({
+  user_id: {
+    type: String,
+    ref: "User",
+    required: true,
+  },
+  job_title: String,
+  job_description: String,
+  tech_expertise: String,
+  years_experience: Number,
+  status: { type: String, default: "In Progress" },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
+const InterviewModel = models.Interview || model("Interview", InterviewSchema);
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const user = await getAuthUser(cookies());
-
-    if (!user) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    await connectMongo();
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-
-    const interviewId = params.id;
-    const db = await openDb();
-    const interview = await db.get(`SELECT job_title FROM interviews WHERE id = ? AND user_id = ?`, interviewId, user.id);
-
+    const awaitedParams = await params;
+    const interviewId = new mongoose.Types.ObjectId(awaitedParams.id);
+    console.log("Querying interview:", { _id: interviewId });
+    const interview = await InterviewModel.findById(interviewId).lean();
+    console.log("Found interview:", interview);
     if (!interview) {
-      return NextResponse.json({ message: 'Interview not found' }, { status: 404 });
+      return NextResponse.json(
+        { message: "Interview not found" },
+        { status: 404 }
+      );
     }
-
+    if (interview.user_id !== userId) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.json({ jobTitle: interview.job_title });
   } catch (error) {
-    console.error('Error fetching interview details:', error);
-    return NextResponse.json({ error: 'Failed to fetch interview details' }, { status: 500 });
+    console.error("Error fetching interview details:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch interview details" },
+      { status: 500 }
+    );
   }
 }

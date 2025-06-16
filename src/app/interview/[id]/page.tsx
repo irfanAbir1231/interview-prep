@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 
-
 // Mock interview questions
-
 
 type InterviewState = "idle" | "asking" | "listening" | "finished";
 
@@ -32,10 +30,12 @@ export default function InterviewPage() {
   useEffect(() => {
     const fetchInterviewDetails = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const questionsParam = urlParams.get('questions');
+      const questionsParam = urlParams.get("questions");
       if (questionsParam) {
         try {
-          const parsedQuestions = JSON.parse(decodeURIComponent(questionsParam));
+          const parsedQuestions = JSON.parse(
+            decodeURIComponent(questionsParam)
+          );
           setQuestions(parsedQuestions);
           setAnswers(Array(parsedQuestions.length).fill(""));
         } catch (e) {
@@ -87,7 +87,7 @@ export default function InterviewPage() {
       interviewInterval = setInterval(() => {
         setInterviewTimer((t) => {
           if (t <= 1) {
-            clearInterval(interviewInterval!); 
+            clearInterval(interviewInterval!);
             setInterviewState("finished");
             processFeedback();
             return 0;
@@ -111,7 +111,14 @@ export default function InterviewPage() {
       if (interviewInterval) clearInterval(interviewInterval);
       if (questionInterval) clearInterval(questionInterval);
     };
-  }, [interviewState, currentQuestionIndex, questions, answers, router, interviewId]);
+  }, [
+    interviewState,
+    currentQuestionIndex,
+    questions,
+    answers,
+    router,
+    interviewId,
+  ]);
 
   // Start question
   useEffect(() => {
@@ -124,7 +131,11 @@ export default function InterviewPage() {
 
   // Add TTS effect for each question
   useEffect(() => {
-    if (interviewState === "asking" && window.speechSynthesis && questions.length > 0) {
+    if (
+      interviewState === "asking" &&
+      window.speechSynthesis &&
+      questions.length > 0
+    ) {
       const utterance = new window.SpeechSynthesisUtterance(
         questions[currentQuestionIndex]
       );
@@ -198,10 +209,10 @@ export default function InterviewPage() {
   const processFeedback = async () => {
     setLoadingFeedback(true);
     try {
-      const response = await fetch('/api/process-feedback', {
-        method: 'POST',
+      const response = await fetch("/api/process-feedback", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           interviewId,
@@ -216,17 +227,21 @@ export default function InterviewPage() {
       }
 
       const data = await response.json();
-      console.log('Received feedback data:', data);
+      console.log("Received feedback data:", data);
       if (data) {
-        sessionStorage.setItem('interviewFeedback', JSON.stringify(data));
+        const feedbackWithJob = { ...data, jobTitle };
+        sessionStorage.setItem(
+          "interviewFeedback",
+          JSON.stringify(feedbackWithJob)
+        );
         router.push(`/feedback?interviewId=${interviewId}`);
       } else {
-        setError('Received empty or invalid feedback data.');
-        console.error('Received empty or invalid feedback data:', data);
+        setError("Received empty or invalid feedback data.");
+        console.error("Received empty or invalid feedback data:", data);
       }
     } catch (error) {
-      console.error('Error processing feedback:', error);
-      setError('Failed to process feedback.');
+      console.error("Error processing feedback:", error);
+      setError("Failed to process feedback.");
     } finally {
       setLoadingFeedback(false);
     }
@@ -250,12 +265,10 @@ export default function InterviewPage() {
     // Proceed to feedback page
     processFeedback();
 
-     // Proceed to feedback page
-     setInterviewState("finished");
-     processFeedback();
-
+    // Proceed to feedback page
+    setInterviewState("finished");
+    processFeedback();
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">

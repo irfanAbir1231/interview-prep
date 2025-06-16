@@ -15,7 +15,7 @@ import {
   SignedIn,
   SignedOut,
   UserButton,
-} from '@clerk/nextjs'
+} from "@clerk/nextjs";
 
 // Sidebar is now the main navigation. Navbar removed.
 
@@ -44,7 +44,10 @@ export default function RootLayout({
         <body className="min-h-screen w-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 overflow-x-hidden">
           <AuthProvider>
             {/* Sidebar */}
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <Sidebar
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+            />
             {/* Hamburger for mobile */}
             <button
               className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
@@ -64,8 +67,8 @@ export default function RootLayout({
                 />
               </svg>
             </button>
-            {/* Avatar at top right */}
-            <div className="fixed top-6 right-20 z-50 flex items-center">
+            {/* Avatar at top right */}{" "}
+            <div className="fixed top-4 right-8 z-50 flex items-center p-2 bg-white/10 backdrop-blur-sm rounded-full border border-gray-700">
               <SignedOut>
                 <div className="bg-white text-black border border-gray-300 px-4 py-2 rounded hover:bg-gray-100">
                   <SignInButton />
@@ -76,13 +79,12 @@ export default function RootLayout({
                   appearance={{
                     elements: {
                       userButtonAvatarBox: {
-                        width: '48px',
-                        height: '48px',
+                        width: "48px",
+                        height: "48px",
                       },
                     },
                   }}
                 />
-
               </SignedIn>
             </div>
             {/* Main content */}
